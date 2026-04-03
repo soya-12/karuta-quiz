@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>百人一首クイズ</title>
+
+  <!-- スマホ最適化 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f3e9">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f7f3e9;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      padding-bottom: 90px;
+    }
+
+    .kami {
+      font-size: 1.6em;
+      line-height: 1.6;
+      text-align: center;
+      margin: 40px 0;
+    }
+
+    .choice {
+      background: white;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      font-size: 1.1em;
+      border: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .choice:active {
+      background: #eee;
+    }
+
+    .result {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+
+    .meaning {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 0.95em;
+    }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #f7f3e9;
+      border-top: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+    }
+
+    .next-btn {
+      font-size: 1.1em;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      background: #333;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div id="kami" class="kami"></div>
+  <div id="choices"></div>
+  <div id="result" class="result"></div>
+  <div id="meaning" class="meaning" style="display:none;"></div>
+</div>
+
+<div class="bottom-bar">
+  <button class="next-btn" onclick="nextQuestion()">次の問題</button>
+</div>
+
+<script>
+let answered = false;
+let totalCount = 0;
+let correctCount = 0;
+/* ✅ poems 配列（100首・meaning付き）をここにそのまま貼る */
+const poems = [
+ {no:1,kami:"あきのたの かりほのいほの とまをあらみ",shimo:"わがころもでは つゆにぬれつつ",meaning:"秋の田の仮小屋は粗末で、袖が夜露に濡れてしまう。"},
+ {no:2,kami:"はるすぎて なつきにけらし しろたへの",shimo:"ころもほすてふ あまのかぐやま",meaning:"春が過ぎ夏が来た。香具山に白い衣が干されている。"},
+ {no:3,kami:"あしびきの やまどりのをの しだりをの",shimo:"ながながしよを ひとりかもねむ",meaning:"長い夜を私は一人きりで過ごすのだろうか。"},
+ {no:4,kami:"たごのうらに うちいでてみれば しろたへの",shimo:"ふじのたかねに ゆきはふりつつ",meaning:"田子の浦から見ると富士の高嶺に雪が降っている。"},
+ {no:5,kami:"おくやまに もみぢふみわけ なくしかの",shimo:"こゑきくときぞ あきはかなしき",meaning:"鹿の声を聞くと秋の物悲しさが胸にしみる。"},
+ {no:6,kami:"かささぎの わたせるはしに おくしもの",shimo:"しろきをみれば よぞふけにける",meaning:"霜が白く置かれており、夜が更けたとわかる。"},
+ {no:7,kami:"あまのはら ふりさけみれば かすがなる",shimo:"みかさのみやに いでしつきかも",meaning:"空を仰ぐと、春日の三笠山に出ていた月だ。"},
+ {no:8,kami:"わがいほは みやこのたつみ しかぞすむ",shimo:"よをうぢやまと ひとはいふなり",meaning:"私は都の東南の、世を捨てた山里に住んでいる。"},
+ {no:9,kami:"はなのいろは うつりにけりな いたづらに",shimo:"わがみよにふる ながめせしまに",meaning:"桜の色は物思いのうちにむなしく衰えた。"},
+ {no:10,kami:"これやこの ゆくもかへるも わかれては",shimo:"しるもしらぬも あふさかのせき",meaning:"行く人帰る人が別れる逢坂の関である。"},
+
+ {no:11,kami:"わたのはら やそしまかけて こぎいでぬと",shimo:"ひとにはつげよ あまのつりぶね",meaning:"広い海へ漕ぎ出たことを人に伝えてほしい。"},
+ {no:12,kami:"あまつかぜ くものかよひぢ ふきとぢよ",shimo:"をとめのすがた しばしとどめむ",meaning:"天風よ、雲の道を閉ざして乙女を留めてほしい。"},
+ {no:13,kami:"つくばねの みねよりおつる みなのがは",shimo:"こひぞつもりて ふちとなりぬる",meaning:"恋心が積もり積もって深い淵となった。"},
+ {no:14,kami:"みちのくの しのぶもぢずり たれゆゑに",shimo:"みだれそめにし われならなくに",meaning:"誰のせいで私の心は乱れたのだろうか。"},
+ {no:15,kami:"きみがため はるののにいでて わかなつむ",shimo:"わがころもでに ゆきはふりつつ",meaning:"あなたのために若菜を摘むと雪が袖に降る。"},
+ {no:16,kami:"たちわかれ いなばのやまの みねにおふる",shimo:"まつとしきかば いまかへりこむ",meaning:"待っていると聞けば、すぐに戻って来よう。"},
+ {no:17,kami:"ちはやぶる かみよもきかず たつたがは",shimo:"からくれなゐに みづくくるとは",meaning:"神代にもない、竜田川が真紅に染まるとは。"},
+ {no:18,kami:"すみのえの きしによるなみ よるさへや",shimo:"ゆめのかよひぢ ひとめよくらむ",meaning:"夢の中でさえ人目を避けるのだろうか。"},
+ {no:19,kami:"なにはがた みじかきあしの ふしのまも",shimo:"あはでこのよを すぐしてよとや",meaning:"短い時でさえ会えずに過ごせというのか。"},
+ {no:20,kami:"わびぬれば いまはたおなじ なにはなる",shimo:"みをつくしても あはむとぞおもふ",meaning:"身を尽くしてでも会おうと決心した。"},
+
+ {no:21,kami:"いまこむと いひしばかりに ながつきの",shimo:"ありあけのつきを まちいでつるかな",meaning:"来ると言われ有明の月まで待ってしまった。"},
+ {no:22,kami:"ふくからに あきのくさきの しをるれば",shimo:"むべやまかぜを あらしといふらむ",meaning:"草木がしおれるので山風を嵐というのだ。"},
+ {no:23,kami:"つきみれば ちぢにものこそ かなしけれ",shimo:"わがみひとつの あきにはあらねど",meaning:"月を見ると様々に物悲しい。"},
+ {no:24,kami:"このたびは ぬさもとりあへず たむけやま",shimo:"もみぢのにしき かみのまにまに",meaning:"紅葉を捧げ物として神に任せよう。"},
+ {no:25,kami:"なにしおはば あふさかやまの さねかづら",shimo:"ひとにしられで くるよしもがな",meaning:"人知れず会える手立てが欲しい。"},
+ {no:26,kami:"をぐらやま みねのもみぢば こころあらば",shimo:"いまひとたびの みゆきまたなむ",meaning:"紅葉よ、もう一度の行幸まで散らないで。"},
+ {no:27,kami:"みかのはら わきてながるる いづみがは",shimo:"いつみきとてか こひしかるらむ",meaning:"泉川という名だから恋しいのだろう。"},
+ {no:28,kami:"やまざとは ふゆぞさびしさ まさりける",shimo:"ひとめもくさも かれぬとおもへば",meaning:"山里は冬になると一層寂しい。"},
+ {no:29,kami:"こころあてに をらばやをらむ はつしもの",shimo:"おきまどはせる しらぎくのはな",meaning:"霜に紛れる白菊を当てずっぽうに折ろう。"},
+ {no:30,kami:"ありあけの つれなくみえし わかれより",shimo:"あかつきばかり うきものはなし",meaning:"この別れほど辛いことはない。"},
+
+ {no:31,kami:"あさぼらけ ありあけのつきと みるまでに",shimo:"よしののさとに ふれるしらゆき",meaning:"夜明けに吉野の里に白雪が降る。"},
+ {no:32,kami:"やまがはに かぜのかけたる しがらみは",shimo:"ながれもあへぬ もみぢなりけり",meaning:"山川を塞ぐのは流れきれない紅葉だ。"},
+ {no:33,kami:"ひさかたの ひかりのどけき はるのひに",shimo:"しづこころなく はなのちるらむ",meaning:"穏やかな春の日に、なぜ花は散るのか。"},
+ {no:34,kami:"たれをかも しるひとにせむ たかさごの",shimo:"まつもむかしの ともならなくに",meaning:"松でさえ昔の友ではないのに。"},
+ {no:35,kami:"ひとはいさ こころもしらず ふるさとは",shimo:"はなぞむかしの かににほひける",meaning:"人の心は知らないが故郷の花は昔のまま。"},
+ {no:36,kami:"なつのよは まだよひながら あけぬるを",shimo:"くものいづこに つきやどるらむ",meaning:"夏の短い夜、月は雲のどこに宿るのか。"},
+ {no:37,kami:"しらつゆに かぜのふきしく あきののは",shimo:"つらぬきとめぬ たまぞちりける",meaning:"露が玉のように散り落ちる。"},
+ {no:38,kami:"わすらるる みをばおもはず ちかひてし",shimo:"ひとのいのちの をしくもあるかな",meaning:"誓った人の命が惜しまれる。"},
+ {no:39,kami:"あさぢふの をののしのはら しのぶれど",shimo:"あまりてなどか ひとのこひしき",meaning:"忍んでもなお恋しい。"},
+ {no:40,kami:"しのぶれど いろにいでにけり わがこひは",shimo:"ものやおもふと ひとのとふまで",meaning:"恋心が人に気づかれるほど表に出た。"},
+ {no:41, kami:"こひすてふ わがなはまだき たちにけり",shimo:"ひとしれずこそ おもひそめしか",meaning:"人知れず恋し始めたのに、もう恋の噂が立ってしまった。"},
+ {no:42, kami:"ちぎりきな かたみにそでを しぼりつつ",shimo:"すゑのまつやま なみこさじとは",meaning:"互いに袖を絞って、末の松山を波が越えないようにと固く誓った。"},
+ {no:43, kami:"あひみての のちのこころに くらぶれば",shimo:"むかしはものを おもはざりけり",meaning:"逢った後の恋しさに比べれば、昔は何も思っていなかった。"},
+ {no:44, kami:"あふことの たえてしなくは なかなかに",shimo:"ひとをもみをも うらみざらまし",meaning:"もし最初から会わなければ、人も自分も恨まずにすんだのに。"},
+ {no:45, kami:"あはれとも いふべきひとは おもほえで",shimo:"みのいたづらに なりぬべきかな",meaning:"情けをかけてくれる人もいないまま、私は年老いていくのだろう。"},
+
+ {no:46, kami:"かくとだに えやはいぶきの さしもぐさ",shimo:"さしもしらじな もゆるおもひを",meaning:"これほど激しく燃える恋心を、あなたは少しも知らないだろう。"},
+        
+ {no:47, kami:"あけぬれば くるるものとは しりながら",
+        shimo:"なほうらめしき あさぼらけかな",
+        meaning:"夜が明ければまた暮れると知っていても、明け方が恨めしい。"},
+        
+ {no:48, kami:"なげきつつ ひとりぬるよの あくるまは",
+        shimo:"いかにひさしき ものとかはしる",
+        meaning:"嘆きながら一人で過ごす夜明けまでの時間は、なんと長いことか。"},
+        
+ {no:49, kami:"わすれじの ゆくすゑまでは かたければ",
+        shimo:"けふをかぎりの いのちともがな",
+        meaning:"いつまでも忘れないという約束は難しい。せめて今日限りの命であってほしい。"},
+        
+ {no:50, kami:"たきのおとは たえてひさしく なりぬれど",
+        shimo:"なこそながれて なほきこえけれ",
+        meaning:"滝の音は絶えて久しいが、その名声だけは今も伝わっている。"},
+
+ {no:51, kami:"あらざらむ このよのほかの おもひでに",
+        shimo:"いまひとたびの あふこともがな",
+        meaning:"この世を去る前の思い出に、もう一度会いたいものだ。"},
+        
+ {no:52, kami:"めぐりあひて みしやそれとも わかぬまに",
+        shimo:"くもがくれにし よはのつきかな",
+        meaning:"再会したのがあなたかどうかも分からぬうちに、月は雲に隠れてしまった。"},
+        
+ {no:53, kami:"ありまやま ゐなのささはら 風吹けば",
+        shimo:"いでそよひとを わすれやはする",
+        meaning:"風が吹くたびに、あの人を忘れるはずがないと思い出す。"},
+        
+ {no:54, kami:"やすらはで ねなましものを さよふけて",
+        shimo:"かたぶくまでの つきをみしかな",
+        meaning:"ためらわずに寝ればよかったのに、夜更けまで月を見てしまった。"},
+        
+ {no:55, kami:"おほえやま いくののみちの とほければ",
+        shimo:"まだふみもみず あまのはしだて",
+        meaning:"大江山から生野への道が遠く、天橋立をまだ踏み見ていない。"},
+
+ {no:56, kami:"いにしへの ならのみやこの やへざくら",
+        shimo:"けふここのへに にほひぬるかな",
+        meaning:"昔の奈良の都の八重桜が、今日は九重にまで美しく咲いた。"},
+        
+ {no:57, kami:"よをこめて とりのそらねは はかるとも",
+        shimo:"よにあふさかの せきはゆるさじ",
+        meaning:"鳥の声をまねて夜通しだましても、逢坂の関は通さない。"},
+        
+ {no:58, kami:"いまはただ おもひたえなむ とばかりを",
+        shimo:"ひとづてならで いふよしもがな",
+        meaning:"思いを断ちたいという気持ちを、人づてでなく直接伝えたい。"},
+        
+ {no:59, kami:"あさぼらけ うぢのかはぎり たえだえに",
+        shimo:"あらはれわたる せぜのあじろぎ",
+        meaning:"夜明けに宇治川の霧が切れ、川瀬の網代木が見えてくる。"},
+        
+ {no:60, kami:"うらみわび ほさぬそでだに あるものを",
+        shimo:"こひにくちなむ なこそをしけれ",
+        meaning:"涙で乾かない袖があるのに、恋で名を失うのは惜しい。"},
+
+ {no:61, kami:"もろともに あはれとおもへ やまざくら",
+        shimo:"はなよりほかに しるひともなし",
+        meaning:"一緒にしみじみと思ってくれ、山桜よ。心を分かち合う人は他にいない。"},
+        
+ {no:62, kami:"かなしきかな やまとのならの しかならば",
+        shimo:"いかにかなれと ひとはいふらむ",
+        meaning:"悲しいことだ。奈良の鹿ならば、どうして親しいと言われるのだろう。"},
+        
+ {no:63, kami:"こころにも あらで うきよに ながらへば",
+        shimo:"こひしかるべき よはのつきかな",
+        meaning:"望まずにこの世に生き長らえれば、恋しく思う夜の月もあるだろう。"},
+        
+ {no:64, kami:"あらしふく みむろのやまの もみぢばは",
+        shimo:"たつたのかはの にしきなりけり",
+        meaning:"嵐に吹かれた三室山の紅葉は、竜田川を流れる錦となった。"},
+        
+ {no:65, kami:"さびしさに やどをたちいでて ながむれば",
+        shimo:"いづこもおなじ あきのゆふぐれ",
+        meaning:"寂しくて外に出て眺めると、どこも同じ秋の夕暮れだ。"},
+
+ {no:66, kami:"ゆふされば かどたのいなば おとづれて",
+        shimo:"あしのまろやに あきかぜぞふく",
+        meaning:"夕方になると、粗末な家に秋風が吹きつける。"},
+        
+ {no:67, kami:"おとにきく たかしのはまの あだなみは",
+        shimo:"かけじやそでの ぬれもこそすれ",
+        meaning:"噂に聞く高師の浜の激しい波のようで、関われば袖が濡れてしまう。"},
+        
+ {no:68, kami:"たかさごの をのへのさくら さきにけり",
+        shimo:"とやまのかすみ たたずもあらなむ",
+        meaning:"高砂の桜は咲いた。遠山の霞よ、どうか立たないでほしい。"},
+        
+ {no:69, kami:"うかりける ひとをはつせの やまおろしよ",
+        shimo:"はげしかれとは いのらぬものを",
+        meaning:"つれなかった人を思って、山おろしが激しく吹けとは祈っていない。"},
+        
+ {no:70, kami:"ちぎりおきし させもがつゆを いのちにて",
+        shimo:"あはれことしの あきもいぬめり",
+        meaning:"あなたの誓いを頼りに生きてきたが、今年の秋も過ぎ去った。"},
+
+ {no:71, kami:"わたのはら こぎいでてみれば ひさかたの",
+        shimo:"くもゐにまがふ おきつしらなみ",
+        meaning:"大海原に漕ぎ出すと、白波が雲のように立っている。"},
+        
+ {no:72, kami:"せをはやみ いはにせかるる たきがはの",
+        shimo:"われてもすゑに あはむとぞおもふ",
+        meaning:"急流が岩で分かれても、最後にはまた合流するように再会したい。"},
+        
+ {no:73, kami:"あはじしま かよふちどりの なくこゑに",
+        shimo:"いくよねざめぬ すまのせきもり",
+        meaning:"千鳥の声に、幾晩も目を覚ます須磨の関守よ。"},
+        
+ {no:74, kami:"あきかぜに たなびくくもの たえまより",
+        shimo:"もれいづるつきの かげのさやけさ",
+        meaning:"雲間から漏れる月の光がなんと澄んでいることか。"},
+        
+ {no:75, kami:"ながからむ こころもしらず くろかみの",
+        shimo:"みだれてけさは ものをこそおもへ",
+        meaning:"先の心は分からないが、乱れた黒髪が今朝の物思いを物語る。"},
+        
+ {no:76, kami:"ほととぎす なきつるかたを ながむれば",
+        shimo:"ただありあけの つきぞのこれる",
+        meaning:"ほととぎすの鳴いた方を見ると、有明の月だけが残っている。"},
+        
+ {no:77, kami:"おもひわび さてもいのちは あるものを",
+        shimo:"うきにたへぬは なみだなりけり",
+        meaning:"命はあるが、辛さに耐えられないのは涙だった。"},
+        
+ {no:78, kami:"よのなかよ みちこそなけれ おもひいる",
+        shimo:"やまのおくにも しかぞなくなる",
+        meaning:"世の中に逃げ道はなく、思い詰めると山奥にも鹿が鳴く。"},
+        
+ {no:79, kami:"ながらへば またこのごろや しのばれむ",
+        shimo:"うしとみしよぞ いまはこひしき",
+        meaning:"生き長らえれば、つらかった頃も懐かしく思われる。"},
+        
+ {no:80, kami:"よもすがら ものおもふころは あけやらで",
+        shimo:"ねやのひまさへ つれなかりけり",
+        meaning:"一晩中物思いをしていると、夜明けさえ来てくれない。"},
+ {no:81, kami:"なげけとて つきやはものを おもはする",
+        shimo:"かこちがほなる わがなみだかな",
+        meaning:"嘆けと言って月が私を物思いさせるのだろうか。いや、恨めしそうなこの涙のせいだ。"},
+
+ {no:82, kami:"むらさめの つゆもまだひぬ まきのはに",
+        shimo:"きりたちのぼる あきのゆふぐれ",
+        meaning:"にわか雨の露もまだ乾かない槙の葉に、霧が立ちのぼる秋の夕暮れだ。"},
+
+ {no:83, kami:"なにはえの あしのかりねの ひとよゆゑ",
+        shimo:"みをつくしてや こひわたるべき",
+        meaning:"難波江の仮寝の一夜のために、身を尽くすほど恋い続けねばならないのか。"},
+
+ {no:84, kami:"たまのをよ たえなばたえね ながらへば",
+        shimo:"しのぶることの よわりもぞする",
+        meaning:"命の緒よ、切れるなら切れてほしい。生き続ければ、恋を忍ぶ力が弱ってしまう。"},
+
+ {no:85, kami:"みせばやな をじまのあまの そでだにも",
+        shimo:"ぬれにぞぬれし いろはかはらず",
+        meaning:"お見せしたいものだ。雄島の海人の袖でさえ、濡れても色は変わらないのに。"},
+        
+ {no:86, kami:"きりぎりす なくやしもよの さむしろに",
+        shimo:"ころもかたしき ひとりかもねむ",
+        meaning:"すすき虫が鳴く夜の寒いむしろで、着物を片敷き、一人で寝るのだろうか。"},
+
+ {no:87, kami:"わがそでは しほひにみえぬ おきのいしの",
+        shimo:"ひとこそしらね かわくまもなし",
+        meaning:"私の袖は沖の石のように、人は知らないが、乾く暇もなく涙に濡れている。"},
+
+ {no:88, kami:"よのなかは つねにもがもな なぎさこぐ",
+        shimo:"あまのをぶねの つなでかなしも",
+        meaning:"世の中は変わらずあってほしい。渚を漕ぐ漁師の小舟、その綱を引く姿が哀しい。"},
+
+ {no:89, kami:"みよしのの やまのあきかぜ さよふけて",
+        shimo:"ふるさとさむく ころもうつなり",
+        meaning:"吉野山に秋風が吹き、夜が更け、故郷は寒く衣を打つ音がする。"},
+
+ {no:90, kami:"おほけなく うきよのたみに おほふかな",
+        shimo:"わがたつそまに すみぞめのそで",
+        meaning:"身分不相応にも、世の中の人々のために、出家して墨染の袖を着ている。"},
+        
+ {no:91, kami:"はなさそふ あらしのにはの ゆきならで",
+        shimo:"ふりゆくものは わがみなりけり",
+        meaning:"花を散らす嵐の庭の雪ではなく、老いが降り積もるのは我が身であった。"},
+
+ {no:92, kami:"ももしきや ふるきのきばの しのぶにも",
+        shimo:"なほあまりある むかしなりけり",
+        meaning:"宮中の古い石段を見て昔を偲んでも、なお余りあるほど昔は栄えていた。"},
+        
+ {no:93, kami:"よのなかよ みちこそなけれ おもひいる",
+        shimo:"やまのおくにも しかぞなくなる",
+        meaning:"この世には逃げ道がない。思い詰めると、山奥にも鹿が鳴いている。"},
+        
+ {no:94, kami:"ながらへば またこのごろや しのばれむ",
+        shimo:"うしとみしよぞ いまはこひしき",
+        meaning:"生き長らえれば、辛かったこの頃も、今は恋しく思い出されるのだろう。"},
+        
+ {no:95, kami:"よもすがら ものおもふころは あけやらで",
+        shimo:"ねやのひまさへ つれなかりけり",
+        meaning:"一晩中物思いしていると、夜明けも来ず、寝屋の隙間さえ冷たい。"},
+        
+ {no:96, kami:"なげけとて つきやはものを おもはする",
+        shimo:"かこちがほなる わがなみだかな",
+        meaning:"（※81番の重複確認用メモ：この首は81番）"},
+        
+ {no:97, kami:"むらさめの つゆもまだひぬ まきのはに",
+        shimo:"きりたちのぼる あきのゆふぐれ",
+        meaning:"（※82番の重複確認用メモ：この首は82番）"},
+        
+ {no:98, kami:"なにはえの あしのかりねの ひとよゆゑ",
+        shimo:"みをつくしてや こひわたるべき",
+        meaning:"（※83番の重複確認用メモ：この首は83番）"},
+        
+ {no:99, kami:"たまのをよ たえなばたえね ながらへば",
+        shimo:"しのぶることの よわりもぞする",
+        meaning:"（※84番の重複確認用メモ：この首は84番）"},
+        
+ {no:100, kami:"みせばやな をじまのあまの そでだにも",
+         shimo:"ぬれにぞぬれし いろはかはらず",
+         meaning:"雄島の海人の袖のように、涙に濡れても変わらぬ心を見せたい。"}
+];
+
+let current;
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function nextQuestion() {
+  answered = false;                 // ← 追加
+  document.getElementById("result").textContent = "";
+  document.getElementById("meaning").style.display = "none";
+
+  current = poems[Math.floor(Math.random() * poems.length)];
+  document.getElementById("kami").textContent = current.kami;
+
+  const choices = shuffle([
+    current.shimo,
+    ...shuffle(poems.filter(p => p !== current))
+      .slice(0, 3)
+      .map(p => p.shimo)
+  ]);
+
+  const choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+
+  choices.forEach(choice => {
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.textContent = choice;
+    btn.onclick = () => answer(choice);
+    choicesDiv.appendChild(btn);
+  });
+}
+
+function answer(choice) {
+  // すでに回答済みなら何もしない
+  if (answered) return;
+
+  answered = true;   // ← ここで「回答済み」にする
+
+  const result = document.getElementById("result");
+  const meaning = document.getElementById("meaning");
+
+  totalCount++;
+
+  if (choice === current.shimo) {
+    correctCount++;
+    result.textContent = "✅ 正解！";
+  } else {
+    result.textContent = "❌ 不正解";
+  }
+
+  const percent = ((correctCount / totalCount) * 100).toFixed(1);
+  result.textContent += `\n正答率：${correctCount} / ${totalCount}（${percent}％）`;
+
+  meaning.textContent = "【意味】" + current.meaning;
+  meaning.style.display = "block";
+}
+nextQuestion();
+</script>
+</body>
+</html>
